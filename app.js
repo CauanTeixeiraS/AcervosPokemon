@@ -9,53 +9,24 @@ document.addEventListener("DOMContentLoaded", () => {
         document.querySelectorAll(".lista_acervos .card")
     );
 
-    const avatarPadrao = "imagens/avatar-padrao.png";
-
-    function obterUsuario(card) {
-        const links = Array.from(card.querySelectorAll("a[href]"));
-
-        // Primeiro tenta identificar o usuário pelo endereço do perfil.
-        for (const link of links) {
-            try {
-                const url = new URL(link.href);
-
-                if (
-                    (url.hostname === "x.com" ||
-                     url.hostname === "www.x.com" ||
-                     url.hostname === "twitter.com" ||
-                     url.hostname === "www.twitter.com")
-                ) {
-                    const partes = url.pathname
-                        .split("/")
-                        .filter(Boolean);
-
-                    if (
-                        partes.length > 0 &&
-                        !["home", "explore", "search", "i"].includes(
-                            partes[0].toLowerCase()
-                        )
-                    ) {
-                        return partes[0].replace(/^@/, "");
-                    }
-                }
-            } catch (erro) {
-                console.warn("Link inválido:", link.href);
-            }
-        }
-
-        // Alternativa: usa o @usuario escrito no próprio card.
-        for (const link of links) {
-            const texto = link.textContent.trim();
-            const resultado = texto.match(/^@([A-Za-z0-9_]{1,15})$/);
-
-            if (resultado) {
-                return resultado[1];
-            }
-        }
-
-        return null;
+    // Verifica se os elementos da pesquisa existem.
+    if (!campo || !botao || !limpar || !mensagem) {
+        console.error(
+            "Erro: confira os IDs dos elementos da pesquisa no index.html."
+        );
+        return;
     }
 
+    // Normaliza o texto para ignorar acentos e maiúsculas.
+    function normalizar(texto) {
+        return texto
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .toLowerCase()
+            .trim();
+    }
+
+    // Cria o nome do arquivo da foto a partir do título do card.
     function criarNomeArquivo(nome) {
         return nome
             .normalize("NFD")
@@ -65,6 +36,7 @@ document.addEventListener("DOMContentLoaded", () => {
             .replace(/^-|-$/g, "");
     }
 
+    // Carrega a foto salva localmente.
     function carregarAvatarLocal(card) {
         const areaAvatar = card.querySelector(".icone");
         const titulo = card.querySelector("h2");
@@ -91,30 +63,23 @@ document.addEventListener("DOMContentLoaded", () => {
         areaAvatar.replaceChildren(imagem);
     }
 
-document.querySelectorAll(".lista_acervos .card")
-    .forEach(carregarAvatarLocal);
+    // Carrega as fotos sem interferir na pesquisa.
+    cards.forEach(carregarAvatarLocal);
 
-    // Carrega as fotos dos acervos.
-    cards.forEach(carregarAvatar);
-
-    function normalizar(texto) {
-        return texto
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "")
-            .toLowerCase();
-    }
-
+    // Pesquisa pelo nome do Pokémon ou pelo usuário do X.
     function pesquisarAcervos() {
-        const termo = normalizar(campo.value.trim());
+        const termo = normalizar(campo.value);
         let encontrados = 0;
 
         cards.forEach((card) => {
-            const corresponde =
-                normalizar(card.textContent).includes(termo);
+            const textoCard = normalizar(card.textContent);
+            const corresponde = textoCard.includes(termo);
 
             card.hidden = !corresponde;
 
-            if (corresponde) encontrados++;
+            if (corresponde) {
+                encontrados++;
+            }
         });
 
         if (termo === "") {
@@ -129,20 +94,29 @@ document.querySelectorAll(".lista_acervos .card")
         }
     }
 
+    // Limpa a pesquisa e volta a exibir todos os cards.
     function limparPesquisa() {
         campo.value = "";
         pesquisarAcervos();
         campo.focus();
     }
 
+    // Eventos dos controles.
     botao.addEventListener("click", pesquisarAcervos);
     limpar.addEventListener("click", limparPesquisa);
+
     campo.addEventListener("input", pesquisarAcervos);
 
     campo.addEventListener("keydown", (evento) => {
-        if (evento.key === "Enter") pesquisarAcervos();
-        if (evento.key === "Escape") limparPesquisa();
+        if (evento.key === "Enter") {
+            pesquisarAcervos();
+        }
+
+        if (evento.key === "Escape") {
+            limparPesquisa();
+        }
     });
 
+    // Exibe todos os acervos ao abrir o site.
     pesquisarAcervos();
 });
